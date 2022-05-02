@@ -26,7 +26,7 @@ blueprint:
       selector:
         select:
           options:
-            - label: Passive
+            - label: Passive 
               value: passive
             - label: Active
               value: active
@@ -34,7 +34,12 @@ blueprint:
               value: time-sensitive
             - label: Critical (Overrides focus & mute)
               value: critical
-
+    gps_accuracy:
+      name: Maximum radius value for GPS
+      description: Ensures triggering only happens when we have a higher level of GPS accuracy
+      selector:
+        text:
+          type: number            
 
 trigger:
   platform: state
@@ -46,12 +51,14 @@ variables:
   zone_state: "{{ states[zone_entity].name }}"
   person_entity: !input person_entity
   person_name: "{{ states[person_entity].name }}"
+  person_accuracy: "{{ states[person_entity].gps_accuracy }}"
+  gps_accuracy: !input gps_accuracy
 
 condition:
   condition: template
   # The first case handles leaving the Home zone which has a special state when zoning called 'home'.
   # The second case handles leaving all other zones.
-  value_template: "{{ zone_entity == 'zone.home' and trigger.from_state.state == 'home' and trigger.to_state.state != 'home' or trigger.from_state.state == zone_state and trigger.to_state.state != zone_state }}"
+  value_template: "{{ zone_entity == 'zone.home' and trigger.from_state.state == 'home' and trigger.to_state.state != 'home' and person_accuracy != '' and person_accuracy <= gps_accuracy or trigger.from_state.state == zone_state and trigger.to_state.state != zone_state and person_accuracy != '' and person_accuracy <= gps_accuracy }}"
 
 action:
   - alias: "Notify that a person has left the zone"
